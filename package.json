@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "this is a backend project to learn backend in a professional manner and practice best practices that are used in a professional grade production app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "node",
+    "javascripts",
+    "backend"
+  ],
+  "author": "Aashay Dongre",
+  "license": "ISC"
+}
