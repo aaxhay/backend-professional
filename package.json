@@ -15,7 +15,8 @@
   "author": "Aashay Dongre",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.1"
   },
   "dependencies": {
     "dotenv": "^17.3.1"
