@@ -20,7 +20,7 @@ const videoSchema = Schema(
       ref: "Video",
     },
     duration: {
-      type: Number,
+      type: Number, // cloudinary url
       required: true,
     },
     views: {
