@@ -12,7 +12,7 @@ dbConnect().then(() => {
     console.log(`Server is listening on port ${process.env.PORT}`);
     
   });
-}).catch(error,(err)=>{
+}).catch((err)=>{
  console.log(`Error occured during Mongodb Connection : ${err}`);
  
 });
