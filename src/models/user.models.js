@@ -27,7 +27,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    bannerImage: {
+    coverImage: {
       type: String,
     },
     watchHistory: [
@@ -41,7 +41,7 @@ const userSchema = new Schema(
       required: [true, "Password is required"],
     },
     refreshToken: {
-      type: Number,
+      type: String,
     },
   },
   { timestamps: true },
