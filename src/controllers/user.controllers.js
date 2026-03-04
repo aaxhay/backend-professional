@@ -146,7 +146,7 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       {message : "user Logged in successfully",
         status : 201,
-        data : accessToken ,refreshToken,loggedInUser
+        data :{ accessToken : accessToken,refreshToken,loggedInUser}
       }
     );
 
