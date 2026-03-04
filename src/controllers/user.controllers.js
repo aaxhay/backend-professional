@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import jwt, { JsonWebTokenError } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 const generateRefreshAndAccessToken = async (userId) => {
   const user = await User.findById(userId);
@@ -41,7 +41,12 @@ const registerUser = asyncHandler(async (req, res) => {
 
   //check file uploads like avatar and coverImage , avatar
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0].path;
+
+  //handled a situaton where user haven't uploaded the cover image which is also required : false in userSchema
+  let coverImageLocalPath;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage > 0){
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
 
   if (!avatarLocalPath) {
     throw new ApiError(400, "avatar is required");
@@ -50,6 +55,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // upload these on cloudinary , avatar and coverImage
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  
 
   // check file uploads like avatar and coverImage , avatar
   if (!avatar) {
@@ -71,14 +77,17 @@ const registerUser = asyncHandler(async (req, res) => {
     "-password -refreshToken",
   );
 
+  console.log(createdUser);
+
   if (!createdUser) {
     throw new ApiError(500, "User not created because of some server issues");
   }
 
   // return res
-  return res
-    .status(201)
-    .json(new ApiResponse(200, createdUser, "User Created Successfully"));
+  return res.json({
+    message: "user created sucessfully",
+    status: 200,
+  });
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -100,6 +109,9 @@ const loginUser = asyncHandler(async (req, res) => {
     $or: [{ email }, { username }],
   });
 
+  // console.log(foundUser);
+  
+
   if (!foundUser) {
     throw new ApiError(400, "User doesn't exist with this email or username");
   }
@@ -113,6 +125,9 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } = await generateRefreshAndAccessToken(
     foundUser._id,
   );
+
+  // console.log(accessToken);
+  
 
   const loggedInUser = await User.findById(foundUser._id).select(
     "-password -refreshToken",
@@ -129,16 +144,18 @@ const loginUser = asyncHandler(async (req, res) => {
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
-      new ApiResponse(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "User Logged in Sucessfully",
-      ),
+      {message : "user Logged in successfully",
+        status : 201,
+        data : accessToken ,refreshToken,loggedInUser
+      }
     );
+
+    
+  // return res.json({
+  //   message : "user logged in successfully",
+  //   status : 201
+  // })
+  
 });
 
 const logOutUser = asyncHandler(async (req, res) => {
@@ -161,13 +178,19 @@ const logOutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, "User logged out Successfully"));
+    .json({
+      message : "user logged out successfully",
+      status : 201,
+    });
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const incomingRefreshToken =
       req.cookies?.refreshToken || req.body.refreshToken;
+
+      // console.log(incomingRefreshToken);
+      
 
     if (!incomingRefreshToken) {
       throw new ApiError(400, "unauthorized access");
@@ -201,11 +224,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
       .json(
-        new ApiResponse(
-          200,
-          { accessToken, refreshToken: newRefreshToken },
-          "Access Token Refreshed",
-        ),
+        {
+          status : 200,
+          data : {accessToken,refreshToken : newRefreshToken},
+          message : "Access Token Refreshed"
+        }
       );
   } catch (error) {
     throw new ApiError(400, error?.message);
