@@ -1,9 +1,14 @@
+import { log } from "console";
 import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  destroyFromCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
 
 const generateRefreshAndAccessToken = async (userId) => {
   const user = await User.findById(userId);
@@ -42,12 +47,14 @@ const registerUser = asyncHandler(async (req, res) => {
   //check file uploads like avatar and coverImage , avatar
   const avatarLocalPath = req.files?.avatar[0]?.path;
 
+  // console.log(avatarLocalPath)
+
   //handled a situaton where user haven't uploaded the cover image which is also required : false in userSchema
   let coverImageLocalPath;
   if (
     req.files &&
     Array.isArray(req.files.coverImage) &&
-    req.files.coverImage > 0
+    req.files.coverImage.length > 0
   ) {
     coverImageLocalPath = req.files.coverImage[0].path;
   }
@@ -60,7 +67,6 @@ const registerUser = asyncHandler(async (req, res) => {
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
-  // check file uploads like avatar and coverImage , avatar
   if (!avatar) {
     throw new ApiError(400, "avatar is required");
   }
@@ -71,7 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     avatar: avatar.url,
-    coverImage: coverImage?.url || " ",
+    coverImage: coverImage?.url,
     fullName,
   });
 
@@ -236,7 +242,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const updateAvatarImage = asyncHandler(async (req, res) => {
-  const avatarLocalFilePath = req.file?.avatar;
+  const avatarLocalFilePath = req.file?.path;
 
   if (!avatarLocalFilePath) {
     throw new ApiError(400, "Unable to get the avatar path");
@@ -248,11 +254,17 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
     throw new ApiError(400, "not able to get avatar url");
   }
 
+  //extracted public id from the response url via a util function
+  const publicID = getPublicIdFromUrl(req.user.avatar);
+
+  //deleted the existing cover image which was saved in our database before this operation
+  await destroyFromCloudinary(publicID);
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: avatar?.url,
+        avatar: avatar.url,
       },
     },
     { new: true },
@@ -266,7 +278,7 @@ const updateAvatarImage = asyncHandler(async (req, res) => {
 
 const updateCoverImage = asyncHandler(async (req, res) => {
   // got cover image from middleware upload via req.file
-  const coverImageLocalFilePath = req.file?.coverImage;
+  const coverImageLocalFilePath = req.file?.path;
 
   // checking for some errors about undefined
   if (!coverImageLocalFilePath) {
@@ -280,6 +292,12 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   if (!coverImage) {
     throw new ApiError(400, "not able to get cover Image url");
   }
+
+  //extracted public id from the response url via a util function
+  const publicID = getPublicIdFromUrl(req.user.coverImage);
+
+  //deleted the existing cover image which was saved in our database before this operation
+  await destroyFromCloudinary(publicID);
 
   // querying user and updating at the same while excluding the password field
   const user = await User.findByIdAndUpdate(
@@ -374,6 +392,81 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  // got username from params
+  const { username } = req.params;
+
+  // checking if username is undefined or not and removing spaces if exists
+  if (!username.trim()) {
+    throw new ApiError(400, "username is not fetched properly");
+  }
+
+  // finding user channel profile by using some professionl aggregation pipelining
+  const channel = await User.aggregate([
+    {
+      $match: { username: username?.toLowerCase() },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            $if: { $in: [req.user?._id, "$subscribers.subscribe"] },
+            $then: true,
+            $else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        email: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+      },
+    },
+  ]);
+
+  if (!channel?.length) {
+    throw new ApiError(
+      400,
+      "some problem raised during getting the user channel profile",
+    );
+  }
+
+  return res.status(200).json({
+    message: "User Channel Profile Fetched Successfully",
+    data: channel[0],
+    status: 200,
+  });
+});
+
 export {
   registerUser,
   loginUser,
@@ -383,5 +476,6 @@ export {
   updateCoverImage,
   updateUserDetails,
   changePassword,
-  getCurrentUser
+  getCurrentUser,
+  getUserChannelProfile,
 };
