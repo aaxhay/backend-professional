@@ -9,6 +9,7 @@ import {
 } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
+import mongoose from "mongoose";
 
 const generateRefreshAndAccessToken = async (userId) => {
   const user = await User.findById(userId);
@@ -321,8 +322,7 @@ const updateUserDetails = asyncHandler(async (req, res) => {
   // got the data from req.body
   const { fullName, email } = req.body;
 
-  console.log(fullName,email);
-  
+  console.log(fullName, email);
 
   // usual checks for handling the undefined or null situations
   if (!(fullName || email)) {
@@ -470,6 +470,60 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   });
 });
 
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    email: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  if (!user) {
+    throw new ApiError(400, "Unable to fetch the users watch history");
+  }
+
+  return res.status(200).json({
+    status: 200,
+    message: "Watch History Fetched Successfully",
+    data: user[0].watchHistory,
+  });
+});
+
 export {
   registerUser,
   loginUser,
@@ -481,4 +535,5 @@ export {
   changePassword,
   getCurrentUser,
   getUserChannelProfile,
+  getUserWatchHistory
 };
