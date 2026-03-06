@@ -321,6 +321,9 @@ const updateUserDetails = asyncHandler(async (req, res) => {
   // got the data from req.body
   const { fullName, email } = req.body;
 
+  console.log(fullName,email);
+  
+
   // usual checks for handling the undefined or null situations
   if (!(fullName || email)) {
     throw new ApiError(400, "All fields are required");
