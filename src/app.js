@@ -22,7 +22,9 @@ app.use(cors({
 
 //routes
 import userRoute from "./routes/user.routes.js";
+import videoRoute from "./routes/video.routes.js"
 app.use("/api/v1/users",userRoute);
+app.use("/api/v1/videos",videoRoute)
 
 
 export {app};

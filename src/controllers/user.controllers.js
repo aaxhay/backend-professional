@@ -10,6 +10,7 @@ import {
 import jwt from "jsonwebtoken";
 import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
 import mongoose from "mongoose";
+import { access } from "fs";
 
 const generateRefreshAndAccessToken = async (userId) => {
   const user = await User.findById(userId);
@@ -167,8 +168,8 @@ const logOutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1,
       },
     },
     { new: true },
@@ -179,10 +180,12 @@ const logOutUser = asyncHandler(async (req, res) => {
     secure: true,
   };
 
+  console.log(req.cookies);
+  
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
     .json({
       message: "user logged out successfully",
       status: 201,
@@ -435,9 +438,9 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         isSubscribed: {
           $cond: {
-            $if: { $in: [req.user?._id, "$subscribers.subscribe"] },
-            $then: true,
-            $else: false,
+            if: { $in: [req.user?._id, "$subscribers.subscribe"] },
+            then: true,
+            else: false,
           },
         },
       },
