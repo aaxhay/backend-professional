@@ -1,10 +1,7 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import dbConnect from "./db/dbConfig.js";
-import { app } from "./app.js";
 
-dotenv.config({
-  path: "./.env",
-});
+import { app } from "./app.js";
 
 dbConnect().then(() => {
   console.log("Mongodb is connected successfully");
