@@ -7,12 +7,15 @@ import {
 import { Video } from "../models/video.models.js";
 import mongoose from "mongoose";
 import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
+import { log } from "console";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   // get all the infomation via req.body
   const { title, description } = req.body;
 
   //   console.log(req.body);
+  // console.log(req.user);
+
   // console.log(Object.keys(req.body));
 
   // checking for fields in case of null or undefined
@@ -21,18 +24,28 @@ const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   // getting the video file via rea.file.path
-  const videoFile = req.file?.path;
+  const videoFile = req.files?.videoFile[0]?.path;
+  const thumbnail = req.files?.thumbnail[0]?.path;
 
   // again checking if we got the path or not
   if (!videoFile) {
     throw new ApiError(400, "file not found");
   }
 
+  if (!thumbnail) {
+    throw new ApiError(400, "file not found");
+  }
+
   // uploaded on cloudinary
   const uploadedVideoResponse = await uploadOnCloudinary(videoFile);
+  const uploadedThumbnailResponse = await uploadOnCloudinary(thumbnail);
 
   // checking if upload operation worked properly or not
   if (!uploadedVideoResponse) {
+    throw new ApiError(400, "error after uploading to cloudinary");
+  }
+
+  if (!uploadedThumbnailResponse) {
     throw new ApiError(400, "error after uploading to cloudinary");
   }
 
@@ -40,7 +53,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const owner = await Video.aggregate([
     {
       $match: {
-        owner: new mongoose.Types.ObjectId(req.user?._id),
+        owner: req.user?._id,
       },
     },
     {
@@ -62,16 +75,16 @@ const uploadVideo = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
-        owner: {
-          $first: "$owner",
-        },
+        owner: { $first: "$owner" },
       },
     },
   ]);
+  
 
   // saving the video data in the database
   const videoFileData = await Video.create({
     videoFile: uploadedVideoResponse.url,
+    thumbnail: uploadedThumbnailResponse.url,
     title,
     description,
     owner: req.user,
@@ -109,15 +122,24 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
   // extracting the public id from the url which we've stored in our database
   const videoFilePublicId = getPublicIdFromUrl(foundVideo.videoFile);
+  const thumbnailPublicId = getPublicIdFromUrl(foundVideo.thumbnail);
 
   // checking if this public id is null or not
   if (!videoFilePublicId) {
     throw new ApiError(400, "Cannot find the publicId");
   }
 
+  if (!thumbnailPublicId) {
+    throw new ApiError(400, "Cannot find the publicId");
+  }
+
   // deleting the cloudinary uploaded mp4 too
   await destroyFromCloudinary(videoFilePublicId, {
     resource_type: "video",
+  });
+
+  await destroyFromCloudinary(thumbnailPublicId, {
+    resource_type: "image",
   });
 
   // finally deleting this url from our database
@@ -133,7 +155,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const updateVideoDetails = asyncHandler(async (req, res) => {
   // getting the id so that i can find the video file
   const { id } = req.params;
-   
+
   // details to update the video file
   const { title, description } = req.body;
 
@@ -143,9 +165,7 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
   }
 
   // checking that every field should be there
-  if (
-    [title, description].some((fields) => fields?.trim() === "")
-  ) {
+  if ([title, description].some((fields) => fields?.trim() === "")) {
     throw new ApiError(400, "All fields should be updated");
   }
 
@@ -174,4 +194,23 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
   });
 });
 
-export { uploadVideo, deleteVideo, updateVideoDetails };
+const getAllVideos = asyncHandler(async (req, res) => {
+  const allVideos = await Video.find();
+  console.log(allVideos);
+ 
+  if(!allVideos.length){
+    throw new ApiError(400,"nothing's there to fetch")
+  }
+
+  // console.log(allVideos.length);
+  
+
+  return res.status(200).json({
+    message : "all videos are fetched",
+    status : 200,
+    data : allVideos
+  })
+  
+});
+
+export { uploadVideo, deleteVideo, updateVideoDetails, getAllVideos };
