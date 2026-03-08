@@ -12,6 +12,10 @@ const playlistSchema = Schema(
         ref: "Video",
       },
     ],
+    ownerOfPlaylist: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   { timestamps: true },
 );

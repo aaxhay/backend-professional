@@ -1,7 +1,7 @@
-import { log } from "console";
+
 import { User } from "../models/user.models.js";
+import { Playlist } from "../models/playlist.models.js";
 import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   destroyFromCloudinary,
@@ -10,7 +10,7 @@ import {
 import jwt from "jsonwebtoken";
 import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
 import mongoose from "mongoose";
-import { access } from "fs";
+
 
 const generateRefreshAndAccessToken = async (userId) => {
   const user = await User.findById(userId);
@@ -527,6 +527,7 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
   });
 });
 
+
 export {
   registerUser,
   loginUser,
@@ -538,5 +539,5 @@ export {
   changePassword,
   getCurrentUser,
   getUserChannelProfile,
-  getUserWatchHistory
+  getUserWatchHistory,
 };

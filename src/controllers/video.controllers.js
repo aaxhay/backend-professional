@@ -5,9 +5,7 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { Video } from "../models/video.models.js";
-import mongoose from "mongoose";
 import { getPublicIdFromUrl } from "../utils/getPublicIdFromUrl.js";
-import { log } from "console";
 
 const uploadVideo = asyncHandler(async (req, res) => {
   // get all the infomation via req.body
@@ -79,7 +77,6 @@ const uploadVideo = asyncHandler(async (req, res) => {
       },
     },
   ]);
-  
 
   // saving the video data in the database
   const videoFileData = await Video.create({
@@ -197,20 +194,18 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 const getAllVideos = asyncHandler(async (req, res) => {
   const allVideos = await Video.find();
   console.log(allVideos);
- 
-  if(!allVideos.length){
-    throw new ApiError(400,"nothing's there to fetch")
+
+  if (!allVideos.length) {
+    throw new ApiError(400, "nothing's there to fetch");
   }
 
   // console.log(allVideos.length);
-  
 
   return res.status(200).json({
-    message : "all videos are fetched",
-    status : 200,
-    data : allVideos
-  })
-  
+    message: "all videos are fetched",
+    status: 200,
+    data: allVideos,
+  });
 });
 
 export { uploadVideo, deleteVideo, updateVideoDetails, getAllVideos };
