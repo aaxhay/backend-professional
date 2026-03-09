@@ -22,9 +22,11 @@ app.use(
 import userRoute from "./routes/user.routes.js";
 import videoRoute from "./routes/video.routes.js";
 import playlistRoute from "./routes/playlist.routes.js";
+import commentRoute from "./routes/comment.routes.js";
 
 app.use("/api/v1/users", userRoute);
 app.use("/api/v1/videos", videoRoute);
 app.use("/api/v1/playlists", playlistRoute);
+app.use("/api/v1/comments", commentRoute);
 
 export { app };
