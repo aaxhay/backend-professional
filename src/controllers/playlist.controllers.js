@@ -111,4 +111,49 @@ const deletePlaylist = asyncHandler(async (req, res) => {
   });
 });
 
-export { createPlaylist, getAllPlaylists, searchPlaylist, deletePlaylist };
+const addToPlaylist = asyncHandler(async (req, res) => {
+  // taking videoId and playlistId
+  const { videoId, playlistId } = req.params;
+
+  // console.log(videoId,playlistId);
+
+  // checking if both should be there
+  if (!(videoId && playlistId)) {
+    throw new ApiError(400, "All the fields are required");
+  }
+
+  // finding the playlist via playlistId
+  const foundPlaylist = await Playlist.findById(playlistId);
+
+  //checking if we actually got the playlist or not
+  if (!foundPlaylist) {
+    throw new ApiError(400, "There is no such playlist");
+  }
+
+  // only playlist creator can add videos to that particular playlist
+  if (foundPlaylist.ownerOfPlaylist.toString() !== req.user?._id.toString())
+    throw new ApiError(
+      400,
+      "this is not your playlist you can't add video to other's playlist",
+    );
+
+  // pushing the data as its an array
+  foundPlaylist.data.push(videoId);
+
+  // manually saving it because we've manually added video in playlist
+  await foundPlaylist.save();
+
+  //returning the response
+  return res.status(200).json({
+    status: 200,
+    message: "Added to playlist",
+  });
+});
+
+export {
+  createPlaylist,
+  getAllPlaylists,
+  searchPlaylist,
+  deletePlaylist,
+  addToPlaylist,
+};
