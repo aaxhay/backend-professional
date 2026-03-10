@@ -4,6 +4,7 @@ import {
   getAllComments,
   addComment,
   updateComment,
+  deleteComment,
 } from "../controllers/comment.controllers.js";
 const router = Router();
 
@@ -12,5 +13,6 @@ router.use(verifyJWT);
 router.route("/add-comment/:videoId").post(addComment);
 router.route("/get-all-comments").get(getAllComments);
 router.route("/update-comment/:id").patch(updateComment);
+router.route("/delete-comment/:id").delete(deleteComment)
 
 export default router;

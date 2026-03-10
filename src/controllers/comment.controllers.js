@@ -47,7 +47,9 @@ const updateComment = asyncHandler(async (req, res) => {
     {
       new: true,
     },
-  );
+  ).populate("owner", "email username avatar");
+
+  // console.log(updateComment.owner.username);
 
   if (!updatedComment) {
     throw new ApiError(403, "You are not allowed to update this comment");
@@ -71,4 +73,23 @@ const getAllComments = asyncHandler(async (req, res) => {
   });
 });
 
-export { getAllComments, addComment, updateComment };
+const deleteComment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    throw new ApiError(400, "id not found || undefined or null");
+  }
+
+  const deletedComment = await Comment.findOneAndDelete({ _id: id, owner: req.user?._id });
+
+  if(!deletedComment){
+    throw new ApiError(403, "You are not allowed to delete this comment");
+  }
+
+  return res.status(200).json({
+    status: 200,
+    message: "comment deleted successfully",
+  });
+});
+
+export { getAllComments, addComment, updateComment,deleteComment };
