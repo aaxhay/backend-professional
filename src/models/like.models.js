@@ -1,5 +1,4 @@
 import mongoose ,{Schema} from "mongoose";
-import { Tweet } from "./tweet.models";
 
 const likeSchema = Schema({
     video : {
